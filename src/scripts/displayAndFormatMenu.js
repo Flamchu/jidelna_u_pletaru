@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
 				const formattedDate = rawDateParts.join(" ");
 
 				html += `<div class="menu-day">
-                            <h3>${formattedDay}, ${formattedDate}</h3>
+                            <h3>${formattedDay} ${formattedDate}</h3>
                             <ul>`;
 				dayMenu.items.forEach((item) => {
 					html += `<li><strong>${item.type}:</strong> ${item.description}</li>`;
