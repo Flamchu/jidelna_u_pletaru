@@ -3,7 +3,8 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-function fetchMenuHtml($url) {
+function fetchMenuHtml($url)
+{
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -19,64 +20,56 @@ function fetchMenuHtml($url) {
     return $html;
 }
 
-function parseMenu($html) {
+function parseMenu($html)
+{
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
     $xpath = new DOMXPath($dom);
+
     $menuItems = [];
     $currentDay = '';
-    $currentDate = '';
     $currentItems = [];
-    
-    $startDate = new DateTime();
-
-    if ($startDate->format('N') >= 6) {
-        $startDate->modify('next monday');
-    }
 
     $rows = $xpath->query('//div[contains(@class, "foodTable")]//table//tr');
-    $dayOffset = 0;
-
     foreach ($rows as $row) {
+        $dayNode = $xpath->query('.//td[contains(@class, "foodTableDay")]', $row);
         $typeNode = $xpath->query('.//td[contains(@class, "foodTableType")]', $row);
         $descriptionNode = $xpath->query('.//td[last()]', $row);
 
+        // If a new day starts
+        if ($dayNode->length > 0) {
+            if ($currentDay) {
+                $menuItems[] = ['day' => $currentDay, 'items' => $currentItems];
+            }
+
+            $currentDay = trim(preg_replace('/\s+/', ' ', $dayNode->item(0)->textContent));
+            $currentItems = [];
+            continue;
+        }
+
+        // Parse meal type and description
         if ($typeNode->length > 0 && $descriptionNode->length > 0) {
             $type = trim($typeNode->item(0)->textContent);
             $description = trim($descriptionNode->item(0)->textContent);
 
-            if ($type == 'Bageta 1' || $type == 'Bageta 2') {
+            // Skip specific unwanted items
+            if ($type === 'Bageta 1' || $type === 'Bageta 2') {
                 continue;
             }
 
-            if ($type == 'Polévka') {
-                if ($currentDay) {
-                    $menuItems[] = ['day' => $currentDay, 'date' => $currentDate, 'items' => $currentItems];
-                }
-
-                $currentDate = $startDate->format('d. m. Y');
-                $currentDay = $startDate->format('l');
-                $currentItems = [];
-                $dayOffset++;
-                
-                $startDate->modify('+1 weekday');
-            }
-
-            if (isset($currentItems)) {
-                $currentItems[] = ['type' => $type, 'description' => $description];
-            }
+            $currentItems[] = ['type' => $type, 'description' => $description];
         }
     }
 
+    // Add the last day menu
     if ($currentDay) {
-        $menuItems[] = ['day' => $currentDay, 'date' => $currentDate, 'items' => $currentItems];
+        $menuItems[] = ['day' => $currentDay, 'items' => $currentItems];
     }
 
     return $menuItems;
 }
 
 $url = 'http://jidelna.pleas.cz:8099/orders/index.aspx';
-
 $html = fetchMenuHtml($url);
 
 $menuItems = [];
