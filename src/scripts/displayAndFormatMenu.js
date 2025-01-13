@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		loader.style.display = "block";
 
 		try {
-			const menuResponse = await fetch("scripts/fetchMenu.php").then((response) => response.json());
+			const menuResponse = await fetch("php/fetchMenu.php").then((response) => response.json());
 			let html = "";
 			let displayDate = new Date();
 
